@@ -1,21 +1,20 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Teams = game:GetService("Teams") -- Optional if you use TeamColor instead
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local isLocking = false
 
--- Find closest enemy to center of screen
-local function getClosestEnemyToCrosshair()
-	local closestEnemy = nil
+-- Find player with head closest to center of screen
+local function getClosestToCrosshair()
+	local closestPlayer = nil
 	local smallestDistance = math.huge
 	local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team and player.Character and player.Character:FindFirstChild("Head") then
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
 			local head = player.Character.Head
 			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
 
@@ -25,19 +24,19 @@ local function getClosestEnemyToCrosshair()
 
 				if distance < smallestDistance then
 					smallestDistance = distance
-					closestEnemy = player
+					closestPlayer = player
 				end
 			end
 		end
 	end
 
-	return closestEnemy
+	return closestPlayer
 end
 
--- Camera lock logic
+-- Lock camera to target head
 RunService.RenderStepped:Connect(function()
 	if isLocking then
-		local target = getClosestEnemyToCrosshair()
+		local target = getClosestToCrosshair()
 		if target and target.Character and target.Character:FindFirstChild("Head") then
 			local head = target.Character.Head
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
@@ -45,7 +44,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Input handlers
+-- Toggle on key press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
 		isLocking = true
