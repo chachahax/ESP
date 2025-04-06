@@ -1,58 +1,54 @@
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local isLocking = false
+local ESP = {}
 
--- Find player with head closest to center of screen
-local function getClosestToCrosshair()
-	local closestPlayer = nil
-	local smallestDistance = math.huge
-	local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-			local head = player.Character.Head
-			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-
-			if onScreen then
-				local screenPos2D = Vector2.new(screenPos.X, screenPos.Y)
-				local distance = (screenPos2D - screenCenter).Magnitude
-
-				if distance < smallestDistance then
-					smallestDistance = distance
-					closestPlayer = player
-				end
-			end
-		end
-	end
-
-	return closestPlayer
+function createBox()
+    local box = Drawing.new("Square")
+    box.Thickness = 1
+    box.Color = Color3.fromRGB(0, 255, 0)
+    box.Filled = false
+    box.Visible = false
+    return box
 end
 
--- Lock camera to target head
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        ESP[player] = createBox()
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        ESP[player] = createBox()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if ESP[player] then
+        ESP[player]:Remove()
+        ESP[player] = nil
+    end
+end)
+
 RunService.RenderStepped:Connect(function()
-	if isLocking then
-		local target = getClosestToCrosshair()
-		if target and target.Character and target.Character:FindFirstChild("Head") then
-			local head = target.Character.Head
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
-		end
-	end
-end)
-
--- Toggle on key press
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
-		isLocking = true
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gameProcessed)
-	if input.KeyCode == Enum.KeyCode.E then
-		isLocking = false
-	end
+    for player, box in pairs(ESP) do
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local root = character.HumanoidRootPart
+            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                local scale = (Camera:WorldToViewportPoint(root.Position + Vector3.new(2, 3, 0)).X - pos.X)
+                box.Size = Vector2.new(scale * 2, scale * 3)
+                box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
+                box.Visible = true
+            else
+                box.Visible = false
+            end
+        else
+            box.Visible = false
+        end
+    end
 end)
