@@ -1,54 +1,65 @@
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local localPlayer = Players.LocalPlayer
 
-local ESP = {}
+local espBoxes = {}
 
-function createBox()
-    local box = Drawing.new("Square")
-    box.Thickness = 1
-    box.Color = Color3.fromRGB(0, 255, 0)
-    box.Filled = false
-    box.Visible = false
-    return box
+local function createESPBox(character)
+	local hrp = character:WaitForChild("HumanoidRootPart", 5)
+	if not hrp then return end
+
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "ESPBox"
+	gui.Adornee = hrp
+	gui.AlwaysOnTop = true
+	gui.Size = UDim2.new(4.5, 0, 5.5, 0)
+	gui.StudsOffset = Vector3.new(0, 0, 0)
+	gui.Parent = character -- more stable than hrp
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 1
+	frame.BorderSizePixel = 0
+	frame.Parent = gui
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(0, 255, 0)
+	stroke.Thickness = 2 -- visible now
+	stroke.Parent = frame
+
+	return gui
 end
 
-for _, player in pairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        ESP[player] = createBox()
-    end
+local function trackPlayer(player)
+	local function onCharacterAdded(character)
+		local esp = createESPBox(character)
+		if esp then
+			espBoxes[player] = esp
+		end
+	end
+
+	if player.Character then
+		onCharacterAdded(player.Character)
+	end
+
+	player.CharacterAdded:Connect(onCharacterAdded)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= localPlayer then
+		trackPlayer(player)
+	end
 end
 
 Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        ESP[player] = createBox()
-    end
+	if player ~= localPlayer then
+		trackPlayer(player)
+	end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    if ESP[player] then
-        ESP[player]:Remove()
-        ESP[player] = nil
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    for player, box in pairs(ESP) do
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local root = character.HumanoidRootPart
-            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                local scale = (Camera:WorldToViewportPoint(root.Position + Vector3.new(2, 3, 0)).X - pos.X)
-                box.Size = Vector2.new(scale * 2, scale * 3)
-                box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                box.Visible = true
-            else
-                box.Visible = false
-            end
-        else
-            box.Visible = false
-        end
-    end
+	local esp = espBoxes[player]
+	if esp then
+		esp:Destroy()
+		espBoxes[player] = nil
+	end
 end)
