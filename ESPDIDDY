@@ -3,6 +3,7 @@ local localPlayer = Players.LocalPlayer
 
 local espBoxes = {}
 
+-- Function to create ESP box for a character
 local function createESPBox(character)
 	local hrp = character:WaitForChild("HumanoidRootPart", 5)
 	if not hrp then return end
@@ -13,7 +14,7 @@ local function createESPBox(character)
 	gui.AlwaysOnTop = true
 	gui.Size = UDim2.new(4.5, 0, 5.5, 0)
 	gui.StudsOffset = Vector3.new(0, 0, 0)
-	gui.Parent = character -- more stable than hrp
+	gui.Parent = character
 
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 1, 0)
@@ -23,39 +24,47 @@ local function createESPBox(character)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(0, 255, 0)
-	stroke.Thickness = 2 -- visible now
+	stroke.Thickness = 2
 	stroke.Parent = frame
 
 	return gui
 end
 
+-- Function to track a player and add ESP when their character spawns
 local function trackPlayer(player)
 	local function onCharacterAdded(character)
+		if not character then return end
+
 		local esp = createESPBox(character)
 		if esp then
 			espBoxes[player] = esp
 		end
 	end
 
+	-- Connect for when the character respawns
+	player.CharacterAdded:Connect(onCharacterAdded)
+
+	-- If the character already exists, attach ESP immediately
 	if player.Character then
 		onCharacterAdded(player.Character)
 	end
-
-	player.CharacterAdded:Connect(onCharacterAdded)
 end
 
+-- Track all current players
 for _, player in ipairs(Players:GetPlayers()) do
 	if player ~= localPlayer then
 		trackPlayer(player)
 	end
 end
 
+-- Track players who join after the script runs
 Players.PlayerAdded:Connect(function(player)
 	if player ~= localPlayer then
 		trackPlayer(player)
 	end
 end)
 
+-- Remove ESP when players leave
 Players.PlayerRemoving:Connect(function(player)
 	local esp = espBoxes[player]
 	if esp then
