@@ -1,39 +1,39 @@
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
-espBoxes = {}
+local espBoxes = {}
 
-local function createESPBoxes(character)
-	local hrp = Character:WaitForChild("HumanoidRootPart", 5)
+local function createESPBox(character)
+	local hrp = character:WaitForChild("HumanoidRootPart", 5)
 	if not hrp then return end
 
-	local g = Instance.new("BillboardGui")
-	g.Name = "ESPBox"
-	g.Adornee = hrp
-	g.AlwaysOnTop = true
-	g.Size = UDim2.new(4.5, 0, 5.5, 0)
-	g.StudsOffset = Vector3.new(0, 0, 0)
-	g.Parent = character
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "ESPBox"
+	gui.Adornee = hrp
+	gui.AlwaysOnTop = true
+	gui.Size = UDim2.new(4.5, 0, 5.5, 0)
+	gui.StudsOffset = Vector3.new(0, 0, 0)
+	gui.Parent = character -- more stable than hrp
 
-	local f = Instance.new("Frame")
-	f.Size = UDim2.new(1, 0, 1, 0)
-	f.BackgroundTransparency = 1
-	f.BorderSizePixel = 0
-	f.Parent = g
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 1
+	frame.BorderSizePixel = 0
+	frame.Parent = gui
 
-	local s = Instance.new("UIStroke")
-	s.Color = Color3.FromRGB(255, 0, 0)
-	s.Thickness = 2
-	s.Parent = f
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(0, 255, 0)
+	stroke.Thickness = 2 -- visible now
+	stroke.Parent = frame
 
-	return g
+	return gui
 end
 
 local function trackPlayer(player)
 	local function onCharacterAdded(character)
-		local esp = createESPBoxes(character)
+		local esp = createESPBox(character)
 		if esp then
-		espBoxes[player] = esp
+			espBoxes[player] = esp
 		end
 	end
 
@@ -44,13 +44,19 @@ local function trackPlayer(player)
 	player.CharacterAdded:Connect(onCharacterAdded)
 end
 
-for i, players in ipairs(Players:GetPlayers()) do
+for _, player in ipairs(Players:GetPlayers()) do
 	if player ~= localPlayer then
 		trackPlayer(player)
 	end
 end
 
-player.PlayerRemoving:Connect(function(player)
+Players.PlayerAdded:Connect(function(player)
+	if player ~= localPlayer then
+		trackPlayer(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
 	local esp = espBoxes[player]
 	if esp then
 		esp:Destroy()
